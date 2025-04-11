@@ -2,12 +2,13 @@ import uuid
 from datetime import datetime, timedelta,UTC
 from redis import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
-from src.persistence import auth
+from fastapi import HTTPException, status, BackgroundTasks
+from src.persistence import auth as persistence
 from src.utils import hashing, jwt
 from src.domain.auth import User
 from src.schemas.auth import UserCreate, LoginSchema, TokenData
 from src.core.redis import get_redis_client
+from src.utils.email import send_email
 
 
 async def register_user(db: AsyncSession, user_data: UserCreate) -> User:
@@ -71,18 +72,22 @@ async def refresh_access_token(token: str, db: AsyncSession) -> str:
     if token_data.expires_at < datetime.now(UTC):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
 
-    user = await persistence.get_user_by_id(db, token_data.user_id)
+    user = await persistence.get_user_by_id(db, uuid.UUID(token_data.user_id))
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     return jwt.create_access_token(data={"sub": str(user.id), "role": user.role.name})
 
 
-async def send_reset_code(email: str) -> None:
+async def send_reset_code(email: str, background_tasks: BackgroundTasks) -> None:
     redis_client = await get_redis_client()
     code = str(uuid.uuid4()).split('-')[0]
     await redis_client.set(f"reset_code:{email}", code, ex=600)
-    # Implement your email sending logic here
+
+    subject = "Your Password Reset Code"
+    body = f"Your password reset code is: {code}"
+
+    background_tasks.add_task(send_email, to_email=email, subject=subject, body=body)
 
 
 async def reset_password(email: str, code: str, new_password: str, db: AsyncSession) -> None:
@@ -97,3 +102,7 @@ async def reset_password(email: str, code: str, new_password: str, db: AsyncSess
 
     user.hashed_password = hashing.hash_password(new_password)
     await persistence.update_user_password(db, user)
+
+
+async def get_all_users(db: AsyncSession) -> list[User]:
+    return await persistence.get_all_users(db)

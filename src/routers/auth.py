@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.db import get_db
+from src.domain.auth import User
+from src.persistence.dependencies import get_current_user, require_role
 from src.schemas.auth import UserCreate, LoginSchema, UserResponse, ForgotPasswordRequest, LogoutRequest, \
     RefreshTokenRequest, ResetPasswordRequest
 from src.schemas.base_schema import ResponseModel
@@ -35,8 +37,8 @@ async def logout(request: LogoutRequest):
 
 
 @router.post("/forgot-password", response_model=ResponseModel[None])
-async def forgot_password(request: ForgotPasswordRequest):
-    await send_reset_code(request.email)
+async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks):
+    await send_reset_code(request.email, background_tasks)
     return ResponseModel(msg="Reset code sent to email")
 
 
@@ -44,3 +46,17 @@ async def forgot_password(request: ForgotPasswordRequest):
 async def reset_password_endpoint(request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
     await reset_password(request.email, request.code, request.new_password, db)
     return ResponseModel(msg="Password updated successfully")
+
+
+@router.get("/me", response_model=ResponseModel[UserResponse], status_code=status.HTTP_200_OK)
+async def get_my_profile(current_user: User = Depends(get_current_user)):
+    return ResponseModel(msg="User profile retrieved successfully", result=current_user)
+
+
+@router.get("/users", response_model=ResponseModel[list[UserResponse]], status_code=status.HTTP_200_OK)
+async def get_all_users(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(["admin"]))
+):
+    users = await get_all_users(db)
+    return ResponseModel(msg="All users retrieved successfully", result=users)

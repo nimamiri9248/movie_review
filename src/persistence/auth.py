@@ -24,3 +24,13 @@ async def create_user(db: AsyncSession, user: User) -> User:
 async def get_role_by_name(db: AsyncSession, role_name: str) -> Role | None:
     result = await db.execute(select(Role).filter(Role.name == role_name))
     return result.scalars().first()
+
+
+async def get_all_users(db: AsyncSession) -> list[User]:
+    result = await db.execute(select(User))
+    return result.scalars().all()
+
+
+async def update_user_password(db: AsyncSession, user: User) -> None:
+    await db.commit()
+    await db.refresh(user)

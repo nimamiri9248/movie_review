@@ -8,6 +8,18 @@ class RoleSchema(BaseModel):
     name: str
 
 
+class UserResponse(BaseModel):
+    id: UUID
+    email: str
+    is_active: bool
+    role: RoleSchema
+
+
+class ResponseModel(BaseModel):
+    msg: str
+    result: object | None = None
+
+
 class UserBase(BaseModel):
     email: EmailStr
     is_active: bool = True
