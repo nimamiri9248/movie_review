@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from uuid import UUID
 from datetime import datetime
@@ -56,3 +58,12 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr = Field(..., description="User's email address")
     code: str = Field(..., description="Reset code sent to the user's email")
     new_password: str = Field(..., description="New password for the user")
+
+
+class PromoteUserRequest(BaseModel):
+    user_id: UUID
+
+
+class RegisterAdminRequest(BaseModel):
+    email: EmailStr
+    password: str

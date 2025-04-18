@@ -4,7 +4,7 @@ from src.core.db import get_db
 from src.domain.auth import User
 from src.persistence.dependencies import get_current_user, require_role
 from src.schemas.auth import UserCreate, LoginSchema, UserResponse, ForgotPasswordRequest, LogoutRequest, \
-    RefreshTokenRequest, ResetPasswordRequest
+    RefreshTokenRequest, ResetPasswordRequest, PromoteUserRequest, RegisterAdminRequest
 from src.schemas.base_schema import ResponseModel
 import src.services.auth as service
 
@@ -60,3 +60,23 @@ async def get_all_users(
 ):
     users = await service.get_all_users(db)
     return ResponseModel(msg="All users retrieved successfully", result=users)
+
+
+@router.post("/admin/promote", response_model=ResponseModel[UserResponse])
+async def promote_user(
+    request: PromoteUserRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(["admin"]))
+):
+    user = await service.promote_user_to_admin(db, request.user_id)
+    return ResponseModel(msg="User promoted to admin", result=user)
+
+
+@router.post("/admin/register", response_model=ResponseModel[UserResponse])
+async def register_admin(
+    request: RegisterAdminRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(["admin"]))
+):
+    user = await service.register_admin_user(db, request.email, request.password)
+    return ResponseModel(msg="Admin registered", result=user)

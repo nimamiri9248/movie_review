@@ -112,4 +112,37 @@ async def get_all_users(db: AsyncSession) -> list[User]:
     return await persistence.get_all_users(db)
 
 
+async def promote_user_to_admin(db: AsyncSession, user_id: uuid.UUID) -> User:
+    user = await persistence.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    admin_role = await persistence.get_role_by_name(db, "admin")
+    if not admin_role:
+        raise HTTPException(status_code=500, detail="Admin role not found")
+
+    user.role_id = admin_role.id
+    await db.commit()
+    await db.refresh(user, attribute_names=["role"])
+    return user
+
+
+async def register_admin_user(db: AsyncSession, email: str, password: str) -> User:
+    existing_user = await persistence.get_user_by_email(db, email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    admin_role = await persistence.get_role_by_name(db, "admin")
+    if not admin_role:
+        raise HTTPException(status_code=500, detail="Admin role not found")
+
+    new_user = User(
+        email=email,
+        hashed_password=hashing.hash_password(password),
+        role_id=admin_role.id,
+        is_active=True
+    )
+    created_user = await persistence.create_user(db, new_user)
+    return created_user
+
 
