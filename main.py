@@ -1,10 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.persistence.dependencies import init_roles
+from src.persistence.dependencies import init_roles, create_initial_admin
 from src.core.config import settings
 # from src.routes import user, movie, review, series
 from src.routers.auth import router as auth_router
-from src.core.db import engine, Base
+from src.core.db import engine, Base, get_db
 
 app = FastAPI(title=settings.project_name)
 
@@ -21,3 +21,4 @@ async def on_startup():
         await conn.run_sync(Base.metadata.create_all)
     async with AsyncSession(engine) as session:
         await init_roles(session)
+        await create_initial_admin(session)

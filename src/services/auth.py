@@ -110,3 +110,6 @@ async def reset_password(email: str, code: str, new_password: str, db: AsyncSess
 
 async def get_all_users(db: AsyncSession) -> list[User]:
     return await persistence.get_all_users(db)
+
+
+

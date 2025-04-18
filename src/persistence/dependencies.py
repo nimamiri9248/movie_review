@@ -1,21 +1,24 @@
 import uuid
 
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from starlette import status
-from src.persistence import auth as persistence
+
 from src.core.config import settings
+from src.persistence import auth as persistence
 from src.core.db import get_db
 from src.domain.auth import Role, User
 from uuid import uuid4
+from src.utils import jwt, hashing
 
-from src.utils import jwt
+security = HTTPBearer(auto_error=True)
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+async def get_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    return credentials.credentials
 
 
 async def init_roles(db: AsyncSession):
@@ -33,10 +36,7 @@ async def init_roles(db: AsyncSession):
         await db.commit()
 
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
-) -> User:
+async def get_current_user(token: str = Depends(get_token), db: AsyncSession = Depends(get_db)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -63,3 +63,22 @@ def require_role(allowed_roles: list[str]) -> callable:
             )
         return current_user
     return role_checker
+
+
+async def create_initial_admin(db: AsyncSession):
+    existing_admin = await persistence.get_user_by_email(db, settings.admin_email)
+    if existing_admin:
+        return
+
+    admin_role = await persistence.get_role_by_name(db, "admin")
+    if not admin_role:
+        raise Exception("Admin role not found. Make sure roles are initialized.")
+
+    admin_user = User(
+        email=settings.admin_email,
+        hashed_password=hashing.hash_password(settings.admin_password),
+        role_id=admin_role.id,
+        is_active=True,
+    )
+
+    await persistence.create_user(db, admin_user)

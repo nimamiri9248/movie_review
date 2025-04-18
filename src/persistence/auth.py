@@ -35,7 +35,9 @@ async def get_role_by_name(db: AsyncSession, role_name: str) -> Role | None:
 
 
 async def get_all_users(db: AsyncSession) -> list[User]:
-    result = await db.execute(select(User))
+    result = await db.execute(
+        select(User).options(selectinload(User.role))
+    )
     return result.scalars().all()
 
 
