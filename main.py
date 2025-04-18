@@ -6,7 +6,7 @@ from src.core.config import settings
 from src.routers.auth import router as auth_router
 from src.core.db import engine, Base
 
-app = FastAPI(title=settings.PROJECT_NAME)
+app = FastAPI(title=settings.project_name)
 
 # app.include_router(user.router, prefix="/users", tags=["Users"])
 # app.include_router(movie.router, prefix="/movies", tags=["Movies"])

@@ -22,18 +22,10 @@ class ResponseModel(BaseModel):
 
 class UserBase(BaseModel):
     email: EmailStr
-    is_active: bool = True
 
 
 class UserCreate(UserBase):
     password: str
-    role_id: UUID
-
-
-class UserResponse(UserBase):
-    model_config = ConfigDict(from_attributes=True)
-    id: UUID
-    role: RoleSchema
 
 
 class LoginSchema(BaseModel):

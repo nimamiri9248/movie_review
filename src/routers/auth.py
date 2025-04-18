@@ -37,8 +37,9 @@ async def logout(request: LogoutRequest):
 
 
 @router.post("/forgot-password", response_model=ResponseModel[None])
-async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks):
-    await send_reset_code(request.email, background_tasks)
+async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks,
+                          db: AsyncSession = Depends(get_db)):
+    await send_reset_code(db, request.email, background_tasks)
     return ResponseModel(msg="Reset code sent to email")
 
 

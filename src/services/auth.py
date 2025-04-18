@@ -1,8 +1,10 @@
+import datetime
 import uuid
-from datetime import datetime, timedelta,UTC
 from redis import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status, BackgroundTasks
+
+from src.core.config import settings
 from src.persistence import auth as persistence
 from src.utils import hashing, jwt
 from src.domain.auth import User
@@ -24,7 +26,8 @@ async def register_user(db: AsyncSession, user_data: UserCreate) -> User:
     new_user = User(
         email=user_data.email,
         hashed_password=hashed_password,
-        role_id=role.id
+        role_id=role.id,
+        is_active=True
     )
     return await persistence.create_user(db, new_user)
 
@@ -36,17 +39,8 @@ async def authenticate_user(db: AsyncSession, login_data: LoginSchema) -> dict:
 
     access_token = jwt.create_access_token(data={"sub": str(user.id), "role": user.role.name})
     refresh_token = jwt.create_refresh_token(data={"sub": str(user.id)})
+    await set_refresh_token(refresh_token, str(user.id))
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
-
-
-async def create_refresh_token(user_id: str) -> str:
-    redis_client: Redis = await get_redis_client()
-    token = str(uuid.uuid4())
-    created_at = datetime.now(UTC)
-    expires_at = created_at + timedelta(days=30)
-    token_data = TokenData(user_id=user_id, token=token, created_at=created_at, expires_at=expires_at)
-    await redis_client.set(f"refresh_token:{token}", token_data.json(), ex=2592000)
-    return token
 
 
 async def get_refresh_token(token: str) -> TokenData | None:
@@ -63,26 +57,36 @@ async def revoke_refresh_token(token: str) -> None:
 
 
 async def refresh_access_token(token: str, db: AsyncSession) -> str:
-    redis_client = await get_redis_client()
-    token_data_json = await redis_client.get(f"refresh_token:{token}")
-    if not token_data_json:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
-
-    token_data = TokenData.parse_raw(token_data_json)
-    if token_data.expires_at < datetime.now(UTC):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
-
-    user = await persistence.get_user_by_id(db, uuid.UUID(token_data.user_id))
+    token = await get_refresh_token(token)
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token")
+    user = await persistence.get_user_by_id(db, uuid.UUID(token.user_id))
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     return jwt.create_access_token(data={"sub": str(user.id), "role": user.role.name})
 
 
-async def send_reset_code(email: str, background_tasks: BackgroundTasks) -> None:
+async def set_refresh_token(token: str, user_id: str, ) -> None:
+    redis_client: Redis = await get_redis_client()
+    created_at = datetime.datetime.now(datetime.UTC)
+    expires_at = created_at + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    token_data = TokenData(
+        user_id=user_id,
+        token=token,
+        created_at=created_at,
+        expires_at=expires_at
+    )
+    await redis_client.set(f"refresh_token:{token}", token_data.json(), ex=expires_at - created_at)
+
+
+async def send_reset_code(db: AsyncSession, email: str, background_tasks: BackgroundTasks) -> None:
+    user = await persistence.get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     redis_client = await get_redis_client()
     code = str(uuid.uuid4()).split('-')[0]
-    await redis_client.set(f"reset_code:{email}", code, ex=600)
+    await redis_client.set(f"reset_code:{email}", code, ex=settings.reset_code_expire_time)
 
     subject = "Your Password Reset Code"
     body = f"Your password reset code is: {code}"
@@ -93,7 +97,7 @@ async def send_reset_code(email: str, background_tasks: BackgroundTasks) -> None
 async def reset_password(email: str, code: str, new_password: str, db: AsyncSession) -> None:
     redis_client = await get_redis_client()
     saved_code = await redis_client.get(f"reset_code:{email}")
-    if not saved_code or saved_code.decode() != code:
+    if not saved_code or saved_code != code:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset code")
 
     user = await persistence.get_user_by_email(db, email)
