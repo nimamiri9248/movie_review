@@ -5,7 +5,7 @@ from src.domain.auth import User
 from src.persistence.dependencies import get_current_user, require_role
 from src.schemas.auth import UserCreate, LoginSchema, UserResponse, ForgotPasswordRequest, LogoutRequest, \
     RefreshTokenRequest, ResetPasswordRequest, PromoteUserRequest, RegisterAdminRequest
-from src.schemas.base_schema import ResponseModel
+from src.schemas.common import ResponseModel
 import src.services.auth as service
 
 router = APIRouter()
