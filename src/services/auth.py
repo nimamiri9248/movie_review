@@ -108,8 +108,12 @@ async def reset_password(email: str, code: str, new_password: str, db: AsyncSess
     await persistence.update_user_password(db, user, new_hashed_password, commit=True)
 
 
-async def get_all_users(db: AsyncSession) -> list[User]:
-    return await persistence.get_all_users(db)
+async def get_all_users(db: AsyncSession, include_inactive: bool) -> list[User]:
+    return await persistence.get_all_users(db, include_inactive)
+
+
+async def get_user(db: AsyncSession, user_id: uuid.UUID, include_inactive: bool) -> User:
+    return await persistence.get_user_by_id(db, user_id, include_inactive)
 
 
 async def promote_user_to_admin(db: AsyncSession, user_id: uuid.UUID) -> User:
@@ -142,4 +146,14 @@ async def register_admin_user(db: AsyncSession, email: str, password: str) -> Us
     created_user = await persistence.create_user(db, new_user, commit=True)
     return created_user
 
+
+async def delete_own_account(db: AsyncSession, current_user: User) -> None:
+    await persistence.delete_user(db, current_user)
+
+
+async def delete_user_by_admin(db: AsyncSession, user_id: uuid.UUID) -> None:
+    user = await persistence.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await persistence.delete_user(db, user)
 

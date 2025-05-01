@@ -11,15 +11,18 @@ from src.domain.auth import User, Role
 
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     result = await db.execute(
-        select(User).options(selectinload(User.role)).filter(User.email == email)
+        select(User)
+        .options(selectinload(User.role))
+        .filter(User.email == email, User.is_active is True)
     )
     return result.scalars().first()
 
 
-async def get_user_by_id(db: AsyncSession, user_id: UUID) -> User | None:
-    result = await db.execute(
-        select(User).options(selectinload(User.role)).filter(User.id == user_id)
-    )
+async def get_user_by_id(db: AsyncSession, user_id: UUID, include_inactive: bool = False) -> User | None:
+    query = select(User).options(selectinload(User.role)).filter(User.id == user_id)
+    if not include_inactive:
+        query = query.filter(User.is_active is True)
+    result = await db.execute(query)
     return result.scalars().first()
 
 
@@ -42,10 +45,11 @@ async def get_role_by_name(db: AsyncSession, role_name: str) -> Role | None:
     return result.scalars().first()
 
 
-async def get_all_users(db: AsyncSession) -> list[User]:
-    result = await db.execute(
-        select(User).options(selectinload(User.role))
-    )
+async def get_all_users(db: AsyncSession, include_inactive: bool = False) -> list[User]:
+    query = select(User).options(selectinload(User.role))
+    if not include_inactive:
+        query = query.filter(User.is_active is True)
+    result = await db.execute(query)
     return list(result.scalars().all())
 
 
@@ -61,3 +65,16 @@ async def modify_user_role(db: AsyncSession, user: User, role_id: uuid.UUID, com
     if commit:
         await db.commit()
         await db.refresh(user, attribute_names=["role"])
+
+
+async def update_user(db: AsyncSession, user: User, commit: bool =  False) -> None:
+    db.add(user)
+    await db.flush()
+    await db.refresh(user)
+    if commit:
+        await db.commit()
+
+
+async def delete_user(db: AsyncSession, user: User) -> None:
+    await db.delete(user)
+    await db.commit()

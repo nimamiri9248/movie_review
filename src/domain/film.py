@@ -30,7 +30,7 @@ class Film(Base):
     release_year: Mapped[int] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(nullable=True)
     poster_url: Mapped[str] = mapped_column(String, nullable=True)
-    reviews: Mapped[list["Review"]] = relationship("Review", back_populates="film")
+    reviews: Mapped[list["Review"]] = relationship("Review", back_populates="film", cascade="all, delete-orphan")
     genres: Mapped[list[Genre]] = relationship(
         secondary=film_genre_association,
         back_populates="films"

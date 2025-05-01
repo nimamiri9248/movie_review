@@ -28,3 +28,9 @@ async def update_user_profile(db: AsyncSession, profile: UserProfile, commit: bo
     if commit:
         await db.commit()
     return profile
+
+
+async def delete_user_profile(db: AsyncSession, profile: UserProfile, commit: bool = False) -> None:
+    await db.delete(profile)
+    if commit:
+        await db.commit()

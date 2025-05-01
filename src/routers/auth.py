@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.db import get_db
@@ -62,6 +64,17 @@ async def get_all_users(
     return ResponseModel(msg="All users retrieved successfully", result=users)
 
 
+@router.get("/user/{user_id}", response_model=ResponseModel[UserResponse], status_code=status.HTTP_200_OK)
+async def get_all_users(
+    user_id: uuid.UUID,
+    include_inactive: bool = False,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(["admin"]))
+):
+    user = await service.get_user(db, user_id, include_inactive)
+    return ResponseModel(msg="All user retrieved successfully", result=user)
+
+
 @router.post("/admin/promote", response_model=ResponseModel[UserResponse])
 async def promote_user(
     request: PromoteUserRequest,
@@ -80,3 +93,22 @@ async def register_admin(
 ):
     user = await service.register_admin_user(db, request.email, request.password)
     return ResponseModel(msg="Admin registered", result=user)
+
+
+@router.delete("/me", response_model=ResponseModel[None], status_code=status.HTTP_200_OK)
+async def delete_my_account(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    await service.delete_own_account(db, current_user)
+    return ResponseModel(msg="Account deleted successfully", result=None)
+
+
+@router.delete("/users/{user_id}", response_model=ResponseModel[None], status_code=status.HTTP_200_OK)
+async def delete_user_by_admin(
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(["admin"]))
+):
+    await service.delete_user_by_admin(db, user_id)
+    return ResponseModel(msg="User deleted successfully", result=None)

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -27,5 +29,15 @@ async def get_profile(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    profile =  await service.get_user_profile(db, current_user.id)
+    profile = await service.get_user_profile(db, current_user.id)
     return ResponseModel(msg="profile was retrieved succussfully", result=profile)
+
+
+@router.delete("/users/{user_id}/profile", response_model=ResponseModel[None], status_code=status.HTTP_200_OK)
+async def deactivate_profile(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    await service.delete_user_profile(db, user_id, current_user)
+    return ResponseModel(msg="Profile deactivated successfully", result=None)
