@@ -26,14 +26,41 @@ async def update_film(db: AsyncSession, film: Film) -> Film:
     return film
 
 
-async def get_films(db: AsyncSession, filters: dict) -> list[Film]:
+async def get_films(
+    db: AsyncSession,
+    filters: dict,
+    sort_by: str = None,
+    sort_order: str = 'asc'
+) -> list[Film]:
     query = select(Film).options(selectinload(Film.genres))
-    if "genre_id" in filters:
-        query = query.join(Film.genres).filter(Genre.id == filters["genre_id"])
-    if "director" in filters:
-        query = query.filter(Film.director.ilike(f"%{filters['director']}%"))
-    if "release_year" in filters:
-        query = query.filter(Film.release_year == filters["release_year"])
+
+    filter_mappings = {
+        "genre_id": lambda v: Film.genres.any(Genre.id == v),
+        "director": lambda v: Film.director.ilike(f"%{v}%"),
+        "release_year": lambda v: Film.release_year == v,
+        "min_rating": lambda v: Film.rating >= v,
+        "max_rating": lambda v: Film.rating <= v,
+        "min_review_count": lambda v: Film.review_count >= v,
+        "max_review_count": lambda v: Film.review_count <= v,
+        "min_film_length": lambda v: Film.film_length >= v,
+        "max_film_length": lambda v: Film.film_length <= v,
+    }
+    for key, value in filters.items():
+        condition = filter_mappings.get(key)
+        if condition:
+            query = query.filter(condition(value))
+    allowed_sort_columns = {
+        "release_year": Film.release_year,
+        "film_length": Film.film_length,
+        "rating": Film.rating,
+        "review_count": Film.review_count,
+        "director": Film.director,
+    }
+
+    sort_column = allowed_sort_columns.get(sort_by)
+    if sort_column is not None:
+        sort_column = sort_column.desc() if sort_order == 'desc' else sort_column.asc()
+        query = query.order_by(sort_column)
 
     result = await db.execute(query)
     return list(result.scalars().all())

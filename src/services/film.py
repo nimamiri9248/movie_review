@@ -17,7 +17,8 @@ async def create_film_service(db: AsyncSession, film_data: FilmCreateSchema) -> 
         release_year=film_data.release_year,
         description=film_data.description,
         poster_url=film_data.poster_url,
-        genres=genre_objs
+        genres=genre_objs,
+        film_length=film_data.film_length
     )
     return await persistence.create_film(db, film)
 
@@ -38,7 +39,7 @@ async def update_film_service(db: AsyncSession, film_id: int, film_update: FilmU
     return await persistence.update_film(db, film)
 
 
-async def list_films_service(db: AsyncSession, filters: dict) -> list[Film]:
+async def list_films_service(db: AsyncSession, filters: dict, sort_by: str, sort_order: str) -> list[Film]:
     return await persistence.get_films(db, filters)
 
 

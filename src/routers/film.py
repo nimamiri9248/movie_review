@@ -6,7 +6,7 @@ import src.services.film as service
 from src.schemas.film import (
     FilmCreateSchema,
     FilmUpdateSchema,
-    FilmResponseSchema
+    FilmResponseSchema, FilmQueryParams
 )
 from src.schemas.common import ResponseModel
 from src.core.db import get_db
@@ -38,20 +38,13 @@ async def update_film(
 
 @router.get("/films", response_model=ResponseModel[list[FilmResponseSchema]])
 async def list_films(
-    genre_id: int | None = Query(default=None),
-    director: str | None = Query(default=None),
-    release_year: int | None = Query(default=None),
+    query: FilmQueryParams = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    filters = {}
-    if genre_id is not None:
-        filters["genre_id"] = genre_id
-    if director is not None:
-        filters["director"] = director
-    if release_year is not None:
-        filters["release_year"] = release_year
+    filters = {k: v for k, v in query.dict().items()
+               if k not in {"sort_by", "sort_order"} and v is not None}
 
-    films = await service.list_films_service(db, filters)
+    films = await service.list_films_service(db, filters, query.sort_by, query.sort_order)
     return ResponseModel(msg="Films retrieved", result=films)
 
 

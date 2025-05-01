@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, Table, Float
+from sqlalchemy import Column, String, Integer, ForeignKey, Table, Float, CheckConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.core.db import Base
 
@@ -37,3 +37,4 @@ class Film(Base):
     )
     rating: Mapped[float] = mapped_column(Float, nullable=True, default=0)
     review_count: Mapped[int] = mapped_column(Integer, default=0)
+    film_length: Mapped[int] = mapped_column(Integer, CheckConstraint('film_length >= 1', name='ck_items_length_min'))
