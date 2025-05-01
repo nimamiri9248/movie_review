@@ -36,7 +36,8 @@ class FilmResponseSchema(BaseModel):
     description: str | None = None
     poster_url: str | None = None
     genres: list[GenreSchema]
-
+    rating: float
+    review_count: int
     model_config = ConfigDict(from_attributes=True)
 
 

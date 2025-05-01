@@ -13,7 +13,7 @@ from src.core.db import get_db
 router = APIRouter()
 
 
-@router.post("/reviews", response_model=ResponseModel[ReviewResponse], satus_code=status.HTTP_201_CREATED)
+@router.post("/reviews", response_model=ResponseModel[ReviewResponse], status_code=status.HTTP_201_CREATED)
 async def upsert_review_route(
     review: ReviewCreate,
     db: AsyncSession = Depends(get_db),

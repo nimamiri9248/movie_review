@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, Table
+from sqlalchemy import Column, String, Integer, ForeignKey, Table, Float
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.core.db import Base
 
@@ -30,8 +30,10 @@ class Film(Base):
     release_year: Mapped[int] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(nullable=True)
     poster_url: Mapped[str] = mapped_column(String, nullable=True)
-    reviews: Mapped[list["Review"]] = relationship("Review",back_populates="film")
+    reviews: Mapped[list["Review"]] = relationship("Review", back_populates="film")
     genres: Mapped[list[Genre]] = relationship(
         secondary=film_genre_association,
         back_populates="films"
     )
+    rating: Mapped[float] = mapped_column(Float, nullable=True, default=0)
+    review_count: Mapped[int] = mapped_column(Integer, default=0)

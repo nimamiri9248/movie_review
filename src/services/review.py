@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.review import Review
 import src.persistence.review as persistence
+from src.persistence.helper_funcs import update_film_rating
 
 
 async def upsert_review(
@@ -11,9 +12,11 @@ async def upsert_review(
     existing_review = await persistence.get_review_by_user_and_film(db, user_id, film_id)
 
     if existing_review:
-        return await persistence.update_review(db, existing_review, rating, review_text)
+        review = await persistence.update_review(db, existing_review, rating, review_text)
     else:
-        return await persistence.create_review(db, user_id, film_id, rating, review_text)
+        review = await persistence.create_review(db, user_id, film_id, rating, review_text)
+    await update_film_rating(db, review.film_id)
+    return review
 
 
 async def list_reviews_for_film(db: AsyncSession, film_id: int) -> list[Review]:
