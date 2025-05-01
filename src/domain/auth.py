@@ -21,7 +21,9 @@ class User(Base):
     role_id: Mapped[UUID] = mapped_column(ForeignKey("roles.id"))
     reviews: Mapped[list["Review"]] = relationship("Review", back_populates="user")
     role: Mapped["Role"] = relationship(back_populates="users")
-    profile: Mapped["UserProfile"] = relationship("UserProfile", back_populates="user", uselist=False)
+    profile: Mapped["UserProfile"] = relationship(
+        "UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
 
 
 Role.users = relationship("User", back_populates="role")
