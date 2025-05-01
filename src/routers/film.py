@@ -62,3 +62,13 @@ async def get_film(
 ):
     film = await service.get_film_service(db, film_id)
     return ResponseModel(msg="Film retrieved", result=film)
+
+
+@router.delete("/films/{film_id}", response_model=ResponseModel[None])
+async def delete_film(
+    film_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(["admin"]))
+):
+    await service.delete_film(db, film_id)
+    return ResponseModel(msg="Film deleted", result=None)

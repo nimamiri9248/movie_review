@@ -45,8 +45,18 @@ async def get_reviews_by_user(
     return ResponseModel(msg="reviews retrieved", result=reviews)
 
 
-@router.get("review/{review_id}", response_model=ResponseModel[ReviewResponse], status_code=status.HTTP_200_OK)
+@router.get("/review/{review_id}", response_model=ResponseModel[ReviewResponse], status_code=status.HTTP_200_OK)
 async def get_review(review_id: int,
                      db: AsyncSession = Depends(get_db)):
     review = await service.get_review(db, review_id)
     return ResponseModel(msg="review retrieved", result=review)
+
+
+@router.delete("/reviews/{review_id}", response_model=ResponseModel[None], status_code=status.HTTP_200_OK)
+async def delete_review(
+    review_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    await service.delete_review_service(db, review_id, current_user)
+    return ResponseModel(msg="Review deleted", result=None)

@@ -47,3 +47,10 @@ async def get_film_service(db: AsyncSession, film_id: int) -> Film:
     if not film:
         raise HTTPException(status_code=404, detail="Film not found")
     return film
+
+
+async def delete_film(db: AsyncSession, film_id: int) -> None:
+    film = await persistence.get_film_by_id(db, film_id)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+    await persistence.delete_film(db, film)

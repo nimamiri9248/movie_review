@@ -1,6 +1,9 @@
 import uuid
+
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.domain.auth import User
 from src.domain.review import Review
 import src.persistence.review as persistence
 from src.persistence.helper_funcs import update_film_rating
@@ -28,4 +31,13 @@ async def list_reviews_by_user(db: AsyncSession, user_id: uuid.UUID) -> list[Rev
 
 
 async def get_review(db: AsyncSession, review_id: int) -> Review:
-    return await persistence.get_review(db, review_id)
+    return await persistence.get_review_by_id(db, review_id)
+
+
+async def delete_review_service(db: AsyncSession, review_id: int, current_user: User) -> None:
+    review = await persistence.get_review_by_id(db, review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    if review.user_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to delete this review")
+    await persistence.delete_review(db, review)

@@ -46,6 +46,11 @@ async def get_reviews_by_user(db: AsyncSession, user_id: uuid.UUID) -> list[Revi
     return list(result.scalars().all())
 
 
-async def get_review(db: AsyncSession, review_id: int) -> Review:
+async def get_review_by_id(db: AsyncSession, review_id: int) -> Review:
     result = await db.execute(select(Review).filter(Review.id == review_id).options(selectinload(Review.film)))
     return result.scalars().first()
+
+
+async def delete_review(db: AsyncSession, review: Review) -> None:
+    await db.delete(review)
+    await db.commit()

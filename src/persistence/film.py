@@ -42,3 +42,8 @@ async def get_films(db: AsyncSession, filters: dict) -> list[Film]:
 async def get_genres_by_ids(db: AsyncSession, genre_ids: list[int]) -> list[Genre]:
     result = await db.execute(select(Genre).where(Genre.id.in_(genre_ids)))
     return list(result.scalars().all())
+
+
+async def delete_film(db: AsyncSession, film: Film) -> None:
+    await db.delete(film)
+    await db.commit()

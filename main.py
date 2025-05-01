@@ -8,10 +8,10 @@ from src.core.db import engine, Base
 
 app = FastAPI(title=settings.project_name)
 
-app.include_router(film.router, prefix="/movies", tags=["Films"])
-app.include_router(review.router, prefix="/reviews", tags=["Reviews"])
-app.include_router(profile.router, prefix="/profile", tags=["profiles"])
-app.include_router(auth.router, prefix="/auth", tags=["Auth"])
+app.include_router(film.router, tags=["Films"])
+app.include_router(review.router, tags=["Reviews"])
+app.include_router(profile.router, tags=["profiles"])
+app.include_router(auth.router, tags=["Auth"])
 
 
 @app.on_event("startup")
