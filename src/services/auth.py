@@ -24,17 +24,18 @@ async def register_user(db: AsyncSession, user_data: UserCreate) -> User:
 
     hashed_password = hashing.hash_password(user_data.password)
     new_user = User(
+        id=uuid.uuid4(),
         email=user_data.email,
-        hashed_password=hashed_password,
+        password=hashed_password,
         role_id=role.id,
         is_active=True
     )
-    return await persistence.create_user(db, new_user)
+    return await persistence.create_user(db, new_user, load_role=True, commit=True)
 
 
 async def authenticate_user(db: AsyncSession, login_data: LoginSchema) -> dict:
     user = await persistence.get_user_by_email(db, login_data.email)
-    if not user or not hashing.verify_password(login_data.password, user.hashed_password):
+    if not user or not hashing.verify_password(login_data.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     access_token = jwt.create_access_token(data={"sub": str(user.id), "role": user.role.name})
@@ -103,9 +104,8 @@ async def reset_password(email: str, code: str, new_password: str, db: AsyncSess
     user = await persistence.get_user_by_email(db, email)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    user.hashed_password = hashing.hash_password(new_password)
-    await persistence.update_user_password(db, user)
+    new_hashed_password = hashing.hash_password(new_password)
+    await persistence.update_user_password(db, user, new_hashed_password, commit=True)
 
 
 async def get_all_users(db: AsyncSession) -> list[User]:
@@ -120,10 +120,7 @@ async def promote_user_to_admin(db: AsyncSession, user_id: uuid.UUID) -> User:
     admin_role = await persistence.get_role_by_name(db, "admin")
     if not admin_role:
         raise HTTPException(status_code=500, detail="Admin role not found")
-
-    user.role_id = admin_role.id
-    await db.commit()
-    await db.refresh(user, attribute_names=["role"])
+    await persistence.modify_user_role(db, user, admin_role.id)
     return user
 
 
@@ -138,11 +135,11 @@ async def register_admin_user(db: AsyncSession, email: str, password: str) -> Us
 
     new_user = User(
         email=email,
-        hashed_password=hashing.hash_password(password),
+        password=hashing.hash_password(password),
         role_id=admin_role.id,
         is_active=True
     )
-    created_user = await persistence.create_user(db, new_user)
+    created_user = await persistence.create_user(db, new_user, commit=True)
     return created_user
 
 

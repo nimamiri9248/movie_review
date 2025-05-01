@@ -4,10 +4,12 @@ from sqlalchemy.orm import selectinload
 from src.domain.film import Film, Genre
 
 
-async def create_film(db: AsyncSession, film: Film) -> Film:
+async def create_film(db: AsyncSession, film: Film, commit: bool = False) -> Film:
     db.add(film)
-    await db.commit()
+    await db.flush()
     await db.refresh(film)
+    if commit:
+        await db.commit()
     return film
 
 
@@ -34,9 +36,9 @@ async def get_films(db: AsyncSession, filters: dict) -> list[Film]:
         query = query.filter(Film.release_year == filters["release_year"])
 
     result = await db.execute(query)
-    return result.scalars().all()
+    return list(result.scalars().all())
 
 
 async def get_genres_by_ids(db: AsyncSession, genre_ids: list[int]) -> list[Genre]:
     result = await db.execute(select(Genre).where(Genre.id.in_(genre_ids)))
-    return result.scalars().all()
+    return list(result.scalars().all())

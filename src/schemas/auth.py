@@ -1,6 +1,5 @@
-import uuid
 
-from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from pydantic import BaseModel, EmailStr, Field
 from uuid import UUID
 from datetime import datetime
 

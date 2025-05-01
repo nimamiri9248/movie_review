@@ -76,9 +76,9 @@ async def create_initial_admin(db: AsyncSession):
 
     admin_user = User(
         email=settings.admin_email,
-        hashed_password=hashing.hash_password(settings.admin_password),
+        password=hashing.hash_password(settings.admin_password),
         role_id=admin_role.id,
         is_active=True,
     )
 
-    await persistence.create_user(db, admin_user)
+    await persistence.create_user(db, admin_user, commit=True)

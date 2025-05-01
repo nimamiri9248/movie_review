@@ -1,38 +1,28 @@
 import uuid
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import status
 
-from src.persistence.profile import create_user_profile, get_user_profile, update_user_profile
+import src.persistence.profile as persistence
 from src.domain.profile import UserProfile
-from src.schemas.profile import UserProfileUpdate
 
 
 async def create_or_update_user_profile(db: AsyncSession,
                                         user_id: uuid.UUID, bio: str | None, avatar_url: str | None) -> UserProfile:
-    profile = await get_user_profile(db, user_id)
+    profile = await persistence.get_user_profile(db, user_id)
     if profile:
         profile.bio = bio
         profile.avatar_url = avatar_url
-        db.add(profile)
-        await db.commit()
-        await db.refresh(profile)
-        return profile
-    return await create_user_profile(db, user_id, bio, avatar_url)
+
+        return await persistence.update_user_profile(db, profile, commit=True)
+    return await persistence.create_user_profile(db, user_id, bio, avatar_url, commit=True)
 
 
-async def update_user_profile_service(
-    db: AsyncSession, user_id: uuid.UUID, profile_update: UserProfileUpdate
-) -> UserProfile:
-    profile = await get_user_profile(db, user_id)
+async def get_user_profile(db: AsyncSession, user_id: uuid.UUID) -> UserProfile:
+    profile = await persistence.get_user_profile(db, user_id)
     if not profile:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
-
-    update_data = profile_update.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(profile, key, value)
-    await update_user_profile(db, profile)
-    await db.commit()
-    await db.refresh(profile)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="no such profile")
     return profile
+
+
+
