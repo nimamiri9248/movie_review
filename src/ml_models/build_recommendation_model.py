@@ -1,14 +1,12 @@
 import pickle
 import numpy as np
-import logging
 import os
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from src.core.db import get_manager_db
+from src.core.logger import logger
 from src.persistence.film import get_films
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 MODEL_DIR = "src/ml_models/recommendation_model"
 
