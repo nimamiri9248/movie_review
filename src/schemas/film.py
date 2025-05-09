@@ -1,5 +1,10 @@
+from asyncio import Lock
+from dataclasses import dataclass
+
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Annotated
+from typing import Annotated, Optional
+
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 class GenreSchema(BaseModel):
@@ -54,11 +59,23 @@ class FilmQueryParams(BaseModel):
     genre_id: int | None = None
     director: str | None = None
     release_year: int | None = None
-    min_rating: Annotated[float, Field(ge=0, le=10)] | None = None
-    max_rating: Annotated[float, Field(ge=0, le=10)] | None = None
+    min_rating: Annotated[float, Field(ge=0, le=5)] | None = None
+    max_rating: Annotated[float, Field(ge=0, le=5)] | None = None
     min_review_count: Annotated[int, Field(ge=0)] | None = None
     max_review_count: Annotated[int, Field(ge=0)] | None = None
     min_film_length: Annotated[int, Field(ge=1)] | None = None
     max_film_length: Annotated[int, Field(ge=1)] | None = None
     sort_by: Annotated[str, Field(description="Options: release_year, film_length, rating, review_count, director")] | None = None
     sort_order: Annotated[str, Field(description="Options: asc, desc")] = "asc"
+
+
+@dataclass
+class RecommendationModel:
+    """Encapsulates the recommendation model state to improve organization and thread safety."""
+    tfidf: TfidfVectorizer
+    cosine_sim: Optional[list[list[float]]] = None
+    id_to_idx: dict[str, int] = None
+    title_to_id: dict[str, str] = None
+    film_ids: list[str] = None
+    initialized: bool = False
+    lock: Lock = None

@@ -15,10 +15,10 @@ async def upsert_review(
     existing_review = await persistence.get_review_by_user_and_film(db, user_id, film_id)
 
     if existing_review:
-        review = await persistence.update_review(db, existing_review, rating, review_text)
+        review = await persistence.update_review(db, existing_review, rating, review_text, commit=True)
     else:
-        review = await persistence.create_review(db, user_id, film_id, rating, review_text)
-    await update_film_rating(db, review.film_id)
+        review = await persistence.create_review(db, user_id, film_id, rating, review_text, commit=True)
+    await update_film_rating(db, review.film_id, commit=True)
     return review
 
 

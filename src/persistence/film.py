@@ -28,7 +28,7 @@ async def update_film(db: AsyncSession, film: Film) -> Film:
 
 async def get_films(
     db: AsyncSession,
-    filters: dict,
+    filters: dict = None,
     sort_by: str = None,
     sort_order: str = 'asc'
 ) -> list[Film]:
@@ -45,10 +45,15 @@ async def get_films(
         "min_film_length": lambda v: Film.film_length >= v,
         "max_film_length": lambda v: Film.film_length <= v,
     }
-    for key, value in filters.items():
-        condition = filter_mappings.get(key)
-        if condition:
-            query = query.filter(condition(value))
+
+    if filters:
+        for key, value in filters.items():
+            if value is None:
+                continue  # skip null values
+            condition = filter_mappings.get(key)
+            if condition:
+                query = query.filter(condition(value))
+
     allowed_sort_columns = {
         "release_year": Film.release_year,
         "film_length": Film.film_length,
@@ -74,3 +79,9 @@ async def get_genres_by_ids(db: AsyncSession, genre_ids: list[int]) -> list[Genr
 async def delete_film(db: AsyncSession, film: Film) -> None:
     await db.delete(film)
     await db.commit()
+
+
+async def get_films_by_ids(db: AsyncSession, film_ids: list) -> list[Film]:
+    film_ids = [int(fid) for fid in film_ids if fid.isdigit()]
+    result = await db.execute(select(Film).options(selectinload(Film.genres)).where(Film.id.in_(film_ids)))
+    return list(result.scalars().all())

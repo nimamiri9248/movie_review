@@ -35,6 +35,6 @@ class Film(Base):
         secondary=film_genre_association,
         back_populates="films"
     )
-    rating: Mapped[float] = mapped_column(Float, CheckConstraint('rating >= 1 AND rating <= 10'), nullable=True, default=0)
+    rating: Mapped[float] = mapped_column(Float, CheckConstraint('rating >= 0 AND rating <= 5'), nullable=True, default=0)
     review_count: Mapped[int] = mapped_column(Integer, CheckConstraint('review_count >= 0'), default=0)
     film_length: Mapped[int] = mapped_column(Integer, CheckConstraint('film_length >= 1', name='ck_items_length_min'))

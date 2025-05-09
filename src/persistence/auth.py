@@ -13,7 +13,7 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     result = await db.execute(
         select(User)
         .options(selectinload(User.role))
-        .filter(User.email == email, User.is_active is True)
+        .filter(User.email == email, User.is_active == True)
     )
     return result.scalars().first()
 
@@ -21,7 +21,7 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
 async def get_user_by_id(db: AsyncSession, user_id: UUID, include_inactive: bool = False) -> User | None:
     query = select(User).options(selectinload(User.role)).filter(User.id == user_id)
     if not include_inactive:
-        query = query.filter(User.is_active is True)
+        query = query.filter(User.is_active == True)
     result = await db.execute(query)
     return result.scalars().first()
 
@@ -48,7 +48,7 @@ async def get_role_by_name(db: AsyncSession, role_name: str) -> Role | None:
 async def get_all_users(db: AsyncSession, include_inactive: bool = False) -> list[User]:
     query = select(User).options(selectinload(User.role))
     if not include_inactive:
-        query = query.filter(User.is_active is True)
+        query = query.filter(User.is_active == True)
     result = await db.execute(query)
     return list(result.scalars().all())
 

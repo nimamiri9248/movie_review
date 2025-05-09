@@ -6,7 +6,7 @@ from typing import Annotated
 
 class ReviewCreate(BaseModel):
     film_id: int
-    rating: Annotated[int, Field(ge=1, le=10, description="Rating must be between 1 and 10")]
+    rating: Annotated[int, Field(ge=0, le=5, description="Rating must be between 1 and 10")]
     review_text: Annotated[str, Field(max_length=5000)] | None = Field(
         default=None, description="Optional review text, max 5000 characters"
     )

@@ -54,3 +54,30 @@ async def get_review_by_id(db: AsyncSession, review_id: int) -> Review:
 async def delete_review(db: AsyncSession, review: Review) -> None:
     await db.delete(review)
     await db.commit()
+
+
+async def get_user_liked_film_ids(
+    db: AsyncSession, user_id: uuid.UUID, min_rating: float = 3.0
+) -> list[str]:
+    """
+    Return list of film IDs that the user rated >= min_rating.
+    """
+    result = await db.execute(
+        select(Review.film_id)
+        .where(Review.user_id == user_id)
+        .where(Review.rating >= min_rating)
+    )
+    return [str(row[0]) for row in result.all()]
+
+
+async def get_user_seen_film_ids(
+    db: AsyncSession, user_id: uuid.UUID
+) -> set[str]:
+    """
+    Return set of all film IDs that the user has rated at all.
+    """
+    result = await db.execute(
+        select(Review.film_id)
+        .where(Review.user_id == user_id)
+    )
+    return {str(row[0]) for row in result.all()}
