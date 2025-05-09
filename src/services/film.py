@@ -45,7 +45,7 @@ async def update_film_service(db: AsyncSession, film_id: int, film_update: FilmU
 
 
 async def list_films_service(db: AsyncSession, filters: dict, sort_by: str, sort_order: str) -> list[Film]:
-    return await persistence.get_films(db, filters)
+    return await persistence.get_films(db, filters,sort_by, sort_order)
 
 
 async def get_film_service(db: AsyncSession, film_id: int) -> Film:
